@@ -15,7 +15,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(str.encode("This server doesn't contain UI"))
             return 
-        pattern = re.compile("\/user\/.*\/$")
+        pattern = re.compile("\/user\/[^\/]*\/$")
         if pattern.match(self.path):
             try:
                 files = os.listdir(self.path[1:] + passwordsDir)
@@ -31,13 +31,17 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_error(404, "username not found")
                 self.end_headers()
                 return 
-        pattern = re.compile("\/user\/.*\/.*$")
+        pattern = re.compile("\/user\/[^\/]*\/.*")
         if pattern.match(self.path):
             try:
                 username = self.path.split('/')[1] + "/" + self.path.split('/')[2]
-                password = self.path.split('/')[3]
+                password = "".join(['⁄' if word == "" else word for word in self.path.split('/')[3:]]) #not forward slash but an unicode char 2044 ⁄, used because forward slash is seperating files
+                if (password[-1] == '⁄'):
+                    password = password[:-1]
+                print(password)
                 if not os.path.isfile(username + os.sep + passwordsDir + password):
                     self.send_error(404, "Password entry not found")
+                    self.end_headers()
                     return 
                 entry = open(username + os.sep + passwordsDir + password)
                 self.send_response(200)

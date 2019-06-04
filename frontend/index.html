@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> Passwords </title>
+
+    <meta charset="UTF-8">
+    <script src="jquery.min.js"></script>
+    <link href="bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <style>
+      img{
+        width: 100%
+      }
+      img#naslovna{
+        width: 40%  !important
+      }
+      body{
+        padding-bottom: 100px;
+        background-color: white;
+      }
+      button, input, textarea{
+        background-color: white;
+      }
+      .password{
+        width: 100%;
+        border: blue solid 1px;
+        padding: 0.3em;
+        word-wrap: break-word;
+      }
+      #single{
+        word-wrap: break-word;
+      }
+      .inputLogin{
+        width: 100%;
+      }
+    </style>
+  <script src="javascript.js"> </script>
+  </head>
+  <body>
+    <br/><br/>
+    <div class="container">
+      <div class="row" id="loginBoxes">
+        <div class="col-md-5">
+          <input id="username" class="inputLogin" type="username" placeholder="username"/>
+        </div>
+        <div class="col-md-5">
+          <input id="password" class="inputLogin" type="password" placeholder="password"/>
+        </div>
+        <div class="col-md-2">
+          <button id="login" style="width: 100%" onClick="login()"> Log in </button>
+        </div>
+      </div>
+      <div class="row" style="display: none;" id="passwordBoxes">
+        <div class="col-md-6" style="height: 100%">
+          <div id="passwords" style="border: blue solid; width: 100%; height: 100%"> </div>
+        </div>
+        <div class="col-md-6" style="height: 100%">
+          <div id="single" style="border: blue solid; width: 100%; height: 100%"> </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

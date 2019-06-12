@@ -3,9 +3,11 @@ import socketserver
 import re
 import os
 import json
+import base64
 
 PORT = 8000
 passwordsDir = "passwords" + os.sep
+hashFileName = "passhash"
 
 class MyHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -19,7 +21,14 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
         pattern = re.compile("\/user\/[^\/]*\/$")
         if pattern.match(self.path):
             try:
+                #  passwordHash = self.rfile.read(int(self.headers['Content-Length']))
+                passwordHashToCompare = open(self.path[1:] + hashFileName).readline()
+                #  if passwordHash == passwordHashToCompare: print("jest")
+                #  else: print("nije")
+                #  print(passwordHash)
+                print(passwordHashToCompare)
                 files = os.listdir(self.path[1:] + passwordsDir)
+                print(files)
                 self.send_response(200)
                 self.send_header('Content-type', "application/json")
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -27,8 +36,11 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
                 self.send_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
                 self.end_headers()
                 global json
-                files = sorted(files, key=lambda s: s.casefold())
+                #  files = sorted(files, key=lambda s: s.casefold())
+                temp = [str(base64.b64encode(i.encode('utf-8'))) for i in files]
+                #  print(base64.b64encode("test".encode()))
                 self.wfile.write(json.dumps(files).encode('utf-8'))
+                print(json.dumps(files))
                 return 
             except Exception as ex:
                 print('get all passwords list')

@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from flask import Flask
+from flask import Flask, request, Response
 from flask_cors import CORS
 import json
 import os
 
 app = Flask(__name__)
 CORS(app)
+app.config['JSON_AS_ASCII'] = False
 
 PORT = 8000
 passwordsDir = "/passwords" + os.sep
@@ -20,28 +19,32 @@ def hello():
 @app.route("/user/<string:user>")
 def getAllPasswords(user):
     try:
-        #  passwordHash = self.rfile.read(int(self.headers['Content-Length']))
-        passwordHashToCompare = open(userDir + user + hashFileName).readline()
-        #  if passwordHash == passwordHashToCompare: print("jest")
-        #  else: print("nije")
-        #  print(passwordHash)
-        #  print(passwordHashToCompare)
+        #check if password is good
+        passwordHash = request.args.to_dict()['key']
+        passwordHashToCompare = open(userDir + user + hashFileName).readline().strip()
+        if passwordHash != passwordHashToCompare:
+            return Response('{"error": "wrong password"}', status=403)
+
         files = os.listdir(userDir + user + passwordsDir)
-        #  print(files)
         global json
         files = sorted(files, key=lambda s: s.casefold())
-        #  print(base64.b64encode("test".encode()))
-        #  print(json.dumps(files, ensure_ascii=False))
+        print(json.dumps(files, ensure_ascii=False))
         return json.dumps(files, ensure_ascii=False)
     except Exception as ex:
         print('get all passwords list')
         print(type(ex).__name__)
         print(ex)
-        return 
+        return
 
 @app.route("/user/<string:user>/<string:password>")
 def getSinglePassword(user, password):
     try:
+        #check if password is good
+        passwordHash = request.args.to_dict()['key']
+        passwordHashToCompare = open(userDir + user + hashFileName).readline().strip()
+        if passwordHash != passwordHashToCompare:
+            return Response('{"error": "wrong password"}', status=403)
+
         username = userDir + user
         #  password = "".join(['⁄' if word == "" else word for word in self.path.split('/')[3:]]) #not forward slash but an unicode char 2044 ⁄, used because forward slash is seperating files
         if (password[-1] == '⁄'):
@@ -49,7 +52,7 @@ def getSinglePassword(user, password):
         password = password.replace("%20", " ")
         if not os.path.isfile(username + os.sep + passwordsDir + password):
             self.send_error(404, password.replace('⁄', '/') + " not found")
-            return '{"error": 404}'
+            return Response('{"error": "password not found"}', status=404)
         entry = open(username + os.sep + passwordsDir + password)
         data = entry.read()
         entry.close()

@@ -5,6 +5,37 @@
 
     <meta charset="UTF-8">
     <script src="jquery.min.js"></script>
+    <script src="sha512.js"></script>
+    <script src="index.js"></script> <!-- WebAssembly code loading -->
+    <script>
+    Module.onRuntimeInitialized = function() {
+      console.log(Module.__Z3fibi(30));
+      fib = Module.__Z3fibi
+      print = Module.__Z5printPc
+      passreadd = Module.__Z8passreadPcS_S_
+    }
+
+    function passread(str, key, salt){
+      // Create a pointer using the 'Glue' method and the String value
+      var ptrStr  = allocate(intArrayFromString(str), 'i8', ALLOC_NORMAL);
+      var ptrKey = allocate(intArrayFromString(key), 'i8', ALLOC_NORMAL);
+      var ptrSalt = allocate(intArrayFromString(salt), 'i8', ALLOC_NORMAL);
+
+      // Call the method passing the pointer
+      var retPtr = passreadd(ptrStr, ptrKey, ptrSalt);
+
+      // Retransform back your pointer to string using 'Glue' method
+      var resValue = UTF8ToString(retPtr);
+
+      // Free the memory allocated by 'allocate' 
+      _free(ptrStr);   
+      _free(ptrKey);   
+      _free(ptrSalt);   
+
+
+      return resValue;
+    }
+    </script>
     <link href="bootstrap.min.css" rel="stylesheet" type="text/css" />
     <style>
       img{
@@ -14,30 +45,51 @@
         width: 40%  !important
       }
       body{
-        padding-bottom: 100px;
-        background-color: white;
+        background-color: #121212;
+        padding: 2em;
       }
       button, input, textarea{
-        background-color: white;
+        color: #F3F3F3;
+        background-color: #A0A0A0;
+        border: black solid 1px;
+        border-radius: 1.5em;
+        padding-left: 1em;
       }
       .password{
         width: 100%;
-        border: blue solid 1px;
         padding: 0.3em;
         word-wrap: break-word;
       }
       #single{
         word-wrap: break-word;
+        color: #F3F3F3;
+        background-color: #A0A0A0;
+        padding-left: 2em;
+        padding-right: 2em;
+        border: black solid 1px;
+        border-radius: 1em;
+      }
+      .single-box{
+        margin: auto;
+        height: 100%;
+        position: sticky;
       }
       .inputLogin{
         width: 100%;
+        margin-bottom: 1em;
+      }
+      .box{
+        background: #4c4c4c;
+        border-radius: 1.5em;
+        padding: 1em;
+        margin: auto;
+        min-width: 80vw;
       }
     </style>
   <script src="javascript.js"> </script>
   </head>
   <body>
-    <br/><br/>
-    <div class="container">
+    <div class="container box">
       <div class="row" id="loginBoxes">
         <div class="col-md-5">
           <input id="username" class="inputLogin" type="username" placeholder="username"/>
@@ -51,10 +103,10 @@
       </div>
       <div class="row" style="display: none;" id="passwordBoxes">
         <div class="col-md-6" style="height: 100%">
-          <div id="passwords" style="border: blue solid; width: 100%; height: 100%"> </div>
+          <div id="passwords" style="width: 100%; height: 100%"> </div>
         </div>
-        <div class="col-md-6" style="height: 100%">
-          <div id="single" style="border: blue solid; width: 100%; height: 100%"> </div>
+        <div class="col-md-6 single-box" style="height: 100%">
+          <div id="single" style="width: 100%; height: 100%"> </div>
         </div>
       </div>
     </div>

@@ -4,10 +4,13 @@ var password = ""
 
 function getAll() {
   var user = window.location.hash.substr(1);
+  passwordHash = sha512(password)
+  console.log(sha512(password))
   $.ajax({
-    url: url + user + "/", //gentoo-h je hostname moje masine, treba da stoji domen ovde
+    url: url + user, //gentoo-h je hostname moje masine, treba da stoji domen ovde
     dataType: "json",
-    contentType: "text/plain",
+    contentType: "json;charset=UTF-8",
+    data: {"key": passwordHash},
     type: "GET",
     async: true,
     success: function(data){
@@ -31,21 +34,19 @@ function appendPasswordsList(data){
 
 function getSingle(single){
   var user = window.location.hash.substr(1);
+  passwordHash = sha512(password)
   $.ajax({
     url: url + user + "/" + single, //gentoo-h je hostname moje masine, treba da stoji domen ovde
     dataType: "json",
-    contentType: "text/plain",
+    contentType: "json",
+    data: {"key": passwordHash},
     type: "GET",
     async: true,
     success: function(data){
       $('#single').empty()
-      $('#single').append(data.usernameSalt)
+      $('#single').append(passread(data.username, password, data.usernameSalt))
       $('#single').append('<br/>')
-      $('#single').append(data.username)
-      $('#single').append('<br/>')
-      $('#single').append(data.passwordSalt)
-      $('#single').append('<br/>')
-      $('#single').append(data.password)
+      $('#single').append(passread(data.password, password, data.passwordSalt))
       $('#single').append('<br/>')
     },
     error: function(){

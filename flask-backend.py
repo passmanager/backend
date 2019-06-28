@@ -28,7 +28,6 @@ def getAllPasswords(user):
         files = os.listdir(userDir + user + passwordsDir)
         global json
         files = sorted(files, key=lambda s: s.casefold())
-        print(json.dumps(files, ensure_ascii=False))
         return json.dumps(files, ensure_ascii=False)
     except Exception as ex:
         print('get all passwords list')
@@ -70,4 +69,4 @@ def getSinglePassword(user, password):
         return '{"error": 404}'
 
 if __name__ == "__main__":
-    app.run(port=PORT)
+    app.run('0.0.0.0', port=PORT)

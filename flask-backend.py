@@ -3,6 +3,8 @@ from flask_cors import CORS
 import json
 import os
 from datetime import datetime
+import string
+import secrets
 
 app = Flask(__name__)
 CORS(app)
@@ -14,17 +16,36 @@ archiveDir = "/archive" + os.sep
 hashFileName = "/passhash"
 userDir = "user/"
 
+salts = dict()
+alphabet = string.ascii_letters + string.digits
+
+def checkPassword(user, passwordHash, salt_id):
+    #TODO: Check password with salt logic
+    passwordHashToCompare = open(userDir + user + hashFileName).readline().strip()
+    return passwordHash == passwordHashToCompare:
+
 @app.route("/")
 def hello():
     return "Hello World!"
+
+@app.route("/user/getSalt/<string:user>", methods=['GET'])
+def getSalt(user):
+    salt_id = ''.join(secrets.choice(alphabet) for i in range(8))
+    salt = ''.join(secrets.choice(alphabet) for i in range(8))
+    entry = {salt_id: salt}
+    if not user in salts:
+        salts[user] = dict()
+    salts[user].update(entry)
+    print(salts)
+
 
 @app.route("/user/<string:user>", methods=['GET', 'POST', 'DELETE', 'PATCH'])
 def getAllPasswords(user):
     try:
         #check if password is good
         passwordHash = request.args.to_dict()['key']
-        passwordHashToCompare = open(userDir + user + hashFileName).readline().strip()
-        if passwordHash != passwordHashToCompare:
+        salt_id = request.args.to_dict()['salt_id']
+        if not checkPassword(user, passwordHash, salt_id):
             return Response('{"error": "wrong password"}', status=403)
 
         if request.method == 'GET':
@@ -96,4 +117,8 @@ def getSinglePassword(user, password):
         return Response('{"error": 404}', status=500)
 
 if __name__ == "__main__":
+    getSalt("hawerner")
+    getSalt("hawerner")
+    getSalt("hawerner")
+    getSalt("test")
     app.run('0.0.0.0', port=PORT)

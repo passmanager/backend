@@ -82,6 +82,12 @@ def getSinglePassword(user, password):
             f.close()
             return Response('{"success": true}', status=201)
 
+        if request.method == 'DELETE':
+            if os.path.isfile(username + os.sep + passwordsDir + password):
+                os.rename(username + os.sep + passwordsDir + password, username + os.sep + archiveDir + password + '  ' + str(datetime.now()))
+            else:
+                return Response('{"error": "password not found"}', status=404)
+
         return Response('{"error": "not implemented"}', status=501)
     except Exception as ex:
         print('get single password')

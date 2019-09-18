@@ -5,12 +5,14 @@ import os
 from datetime import datetime
 import string
 import secrets
+import hashlib
 
 app = Flask(__name__)
 CORS(app)
 app.config['JSON_AS_ASCII'] = False
 
 PORT = 8000
+numberOfTimesToHash = 512
 passwordsDir = "/passwords" + os.sep
 archiveDir = "/archive" + os.sep
 hashFileName = "/passhash"
@@ -22,7 +24,15 @@ alphabet = string.ascii_letters + string.digits
 def checkPassword(user, passwordHash, salt_id):
     #TODO: Check password with salt logic
     passwordHashToCompare = open(userDir + user + hashFileName).readline().strip()
-    return passwordHash == passwordHashToCompare:
+    salt = ""
+    if salt_id != "test": #delete
+        salt = salts[user][salt_id]
+    print(salt) #delete
+    for _ in range(512):
+        passwordHashToCompare = hashlib.sha512((passwordHashToCompare + salt).encode()).hexdigest()
+    salts[user].pop(salt_id, None)
+    print(salts)
+    return passwordHash == passwordHashToCompare
 
 @app.route("/")
 def hello():
@@ -36,7 +46,7 @@ def getSalt(user):
     if not user in salts:
         salts[user] = dict()
     salts[user].update(entry)
-    print(salts)
+    return Response('{"salt_id": "' + salt_id + '", "salt": "' + salt +'"}', 200)
 
 
 @app.route("/user/<string:user>", methods=['GET', 'POST', 'DELETE', 'PATCH'])
@@ -44,7 +54,11 @@ def getAllPasswords(user):
     try:
         #check if password is good
         passwordHash = request.args.to_dict()['key']
-        salt_id = request.args.to_dict()['salt_id']
+        salt_id = ""
+        try:
+            salt_id = request.args.to_dict()['salt_id']
+        except Exception:
+            salt_id = "test" #delete
         if not checkPassword(user, passwordHash, salt_id):
             return Response('{"error": "wrong password"}', status=403)
 
@@ -59,7 +73,7 @@ def getAllPasswords(user):
         print('get all passwords list')
         print(type(ex).__name__)
         print(ex)
-        return
+        return 500
 
 @app.route("/user/<string:user>/<string:password>", methods=['GET', 'POST', 'DELETE', 'PATCH'])
 def getSinglePassword(user, password):
@@ -117,8 +131,4 @@ def getSinglePassword(user, password):
         return Response('{"error": 404}', status=500)
 
 if __name__ == "__main__":
-    getSalt("hawerner")
-    getSalt("hawerner")
-    getSalt("hawerner")
-    getSalt("test")
     app.run('0.0.0.0', port=PORT)

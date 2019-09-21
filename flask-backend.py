@@ -24,14 +24,10 @@ alphabet = string.ascii_letters + string.digits
 def checkPassword(user, passwordHash, salt_id):
     #TODO: Check password with salt logic
     passwordHashToCompare = open(userDir + user + hashFileName).readline().strip()
-    salt = ""
-    if salt_id != "test": #delete
-        salt = salts[user][salt_id]
-    print(salt) #delete
+    salt = salts[user][salt_id]
     for _ in range(512):
         passwordHashToCompare = hashlib.sha512((passwordHashToCompare + salt).encode()).hexdigest()
     salts[user].pop(salt_id, None)
-    print(salts)
     return passwordHash == passwordHashToCompare
 
 @app.route("/")
@@ -54,11 +50,7 @@ def getAllPasswords(user):
     try:
         #check if password is good
         passwordHash = request.args.to_dict()['key']
-        salt_id = ""
-        try:
-            salt_id = request.args.to_dict()['salt_id']
-        except Exception:
-            salt_id = "test" #delete
+        salt_id = request.args.to_dict()['salt_id']
         if not checkPassword(user, passwordHash, salt_id):
             return Response('{"error": "wrong password"}', status=403)
 
@@ -80,8 +72,8 @@ def getSinglePassword(user, password):
     try:
         #check if password is good
         passwordHash = request.args.to_dict()['key']
-        passwordHashToCompare = open(userDir + user + hashFileName).readline().strip()
-        if passwordHash != passwordHashToCompare:
+        salt_id = request.args.to_dict()['salt_id']
+        if not checkPassword(user, passwordHash, salt_id):
             return Response('{"error": "wrong password"}', status=403)
 
         username = userDir + user

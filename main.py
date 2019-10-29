@@ -6,6 +6,7 @@ from datetime import datetime
 import string
 import secrets
 import hashlib
+import sqlite3
 
 app = Flask(__name__)
 CORS(app)
@@ -14,9 +15,14 @@ app.config['JSON_AS_ASCII'] = False
 PORT = 8000
 numberOfTimesToHash = 512
 passwordsDir = "/passwords" + os.sep
+databaseName = "/passwords.db"
 archiveDir = "/archive" + os.sep
 hashFileName = "/passhash"
 userDir = "user/"
+
+ENTRY_TABLE = "ENTRY"
+URL_TABLE = "URL_TABLE"
+PACKAGE_TABLE = "PACKAGE_TABLE"
 
 salts = dict()
 alphabet = string.ascii_letters + string.digits
@@ -29,6 +35,57 @@ def checkPassword(user, passwordHash, salt_id):
         passwordHashToCompare = hashlib.sha512((passwordHashToCompare + salt).encode()).hexdigest()
     salts[user].pop(salt_id, None)
     return passwordHash == passwordHashToCompare
+
+def createDatabase(user):
+    db = sqlite3.connect(userDir + user + databaseName)
+    db.execute("CREATE TABLE IF NOT EXISTS " + ENTRY_TABLE + " ( id INTEGER primary key AUTOINCREMENT, name TEXT unique, usernameSalt TEXT, username TEXT, passwordSalt TEXT, password TEXT, lastModified datetime);");
+    db.execute("CREATE TABLE IF NOT EXISTS " + URL_TABLE + " ( entryId INTEGER, url TEXT, lastModified datetime);");
+    db.execute("CREATE TABLE IF NOT EXISTS " + PACKAGE_TABLE + " (entryId INTEGER, packageName TEXT, lastModified datetime);");
+    db.commit()
+
+def readAllFromTable(user, tableName):
+    db = sqlite3.connect(userDir + user + databaseName)
+    res = db.execute("SELECT * FROM " + tableName + ";")
+    array = [i for i in res]
+    db.close()
+    return array
+
+def getEntryNamesFromDatabase(user):
+    db = sqlite3.connect(userDir + user + databaseName)
+    res = db.execute("SELECT name FROM " + ENTRY_TABLE + ";" )
+    array = [i[0] for i in res]
+    db.close()
+    return array
+
+def getPasswordByName(user, name):
+    db = sqlite3.connect(userDir + user + databaseName)
+    res = db.execute("SELECT * FROM " + ENTRY_TABLE + " where name = ?", [name])
+    array = [i for i in res]
+    db.close()
+    if len(array) == 0:
+        return False
+    passwordTuple = array[0]
+    temp = dict()
+    temp["id"] = passwordTuple[0]
+    temp["name"] = passwordTuple[1]
+    temp["usernameSalt"] = passwordTuple[2]
+    temp["username"] = passwordTuple[3]
+    temp["passwordSalt"] = passwordTuple[4]
+    temp["password"] = passwordTuple[5]
+    try:
+        temp["lastModified"] = passwordTuple[6]
+    except:
+        pass
+    return temp
+
+def insertPassword(user, data):
+    if not 'lastModified' in data or data['lastModified'] == None:
+        data['lastModified'] = datetime.utcnow()
+    db = sqlite3.connect(userDir + user + databaseName)
+    res = db.execute("INSERT INTO " + ENTRY_TABLE + " (id, name, usernameSalt, username, passwordSalt, password, lastModified) values (?, ?, ?, ?, ?, ?, ?)", [data['id'], data['name'], data['usernameSalt'], data["username"], data['passwordSalt'], data['password'], data['lastModified']])
+    db.commit()
+    db.close()
+
 
 @app.route("/")
 def hello():
@@ -55,10 +112,10 @@ def getAllPasswords(user):
             return Response('{"error": "wrong password"}', status=403)
 
         if request.method == 'GET':
-            files = os.listdir(userDir + user + passwordsDir)
+            entries = getEntryNamesFromDatabase(user)
             global json
-            files = sorted(files, key=lambda s: s.casefold())
-            return json.dumps(files, ensure_ascii=False)
+            entries = sorted(entries, key=lambda s: s.casefold())
+            return json.dumps(entries, ensure_ascii=False)
 
         return Response('{"error": "not implemented"}', status=501)
     except Exception as ex:
@@ -83,30 +140,18 @@ def getSinglePassword(user, password):
         password = password.replace("%20", " ")
 
         if request.method == 'GET':
-            if not os.path.isfile(username + os.sep + passwordsDir + password):
-                return Response('{"error": "password not found"}', status=404)
-            entry = open(username + os.sep + passwordsDir + password)
-            data = entry.read()
-            entry.close()
-            temp = dict()
-            temp['usernameSalt'] = data.split('\n')[0]
-            temp['username'] = data.split('\n')[1]
-            temp['passwordSalt'] = data.split('\n')[2]
-            temp['password'] = data.split('\n')[3]
+            temp = getPasswordByName(user, password)
+            if temp == False:
+                return Response('{"error": "not found"}', 404)
             return json.dumps(temp)
 
         if request.method == 'POST' or request.method == 'PATCH':
             dataToWrite = request.args.to_dict()['entry'].to_dict()
             if not ('usernameSalt' in dataToWrite and 'username' in dataToWrite and 'passwordSalt' in dataToWrite and 'password' in dataToWrite):
                 return Response('{"error": "missing some values"}', 400)
-            if os.path.isfile(username + os.sep + passwordsDir + password):
-                os.rename(username + os.sep + passwordsDir + password, username + os.sep + archiveDir + password + '  ' + str(datetime.now()))
-            f = open(username + os.sep + passwordsDir + password)
-            f.write(dataToWrite['usernameSalt'])
-            f.write(dataToWrite['username'])
-            f.write(dataToWrite['passwordSalt'])
-            f.write(dataToWrite['password'])
-            f.close()
+            if not ('id' in dataToWrite):
+                dataToWrite['id'] = None
+            insertPassword(user, dataToWrite)
             return Response('{"success": true}', status=201)
 
         if request.method == 'DELETE':
